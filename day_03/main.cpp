@@ -4,6 +4,7 @@
 
 #include "input.inc"
 
+
 bool contains_symbols(std::vector<int> symbols, int start, int end) {
     for (int i : symbols) {
         if (i >= start) return i <= end;
@@ -32,7 +33,7 @@ int part1() {
                 int n;
                 n = strtol(line+i, &next, 10);
 
-                std::cout << "found number " << n << "\n";
+                if (n == 0) std::cout << "found number " << n << "\n";
 
                 int start = i - 1;
                 i = next - line - 1;
@@ -57,8 +58,79 @@ int part1() {
     return sum;
 }
 
-int part2() {
+int64_t gear_number (const char* line, int i)
+{
+    if ((i != 0) && (line[i-1] >= '0' && line[i-1] <= '9')) {
+        int j;
+        for (j = i-1; j >= 0; --j) {
+            if (!std::isdigit(line[j])) break;
+        }
+        ++j;
+
+        char* next;
+        int64_t n;
+        n = strtoll(line+j, &next, 10);
+
+        j = next - line;
+        if ((j == i) && std::isdigit(line[i+1])){
+            n *= strtoll(line+j+1, &next, 10);
+            return -n;
+        }
+        return n;
+    }
+    if (std::isdigit(line[i])) {
+        return strtoll(line + i, nullptr, 10);
+    }
+    if (std::isdigit(line[i+1])) {
+        return strtoll(line + i + 1, nullptr, 10);
+    }
     return 0;
+}
+
+int64_t part2() {
+
+    int64_t sum = 0;
+    for (int l = 0; l < input.size(); ++l) {
+        auto &line = input[l];
+        for (int i = 0; i < line.length(); ++i) {
+            if (line[i] == '*') {
+                int conn = 0;
+                int64_t gear = 1;
+                if (l != 0) {
+                    int64_t n = gear_number(input[l - 1].c_str(), i);
+                    if (n < 0) {
+                        gear = -n;
+                        conn += 2;
+                    } else if (n){
+                        gear *=n;
+                        ++conn;
+                    }
+                }
+                {
+                    int64_t n = gear_number(input[l].c_str(), i);
+                    if (n < 0) {
+                        gear = -n;
+                        conn += 2;
+                    } else if (n){
+                        gear *=n;
+                        ++conn;
+                    }
+                }
+                if (l+1 < input.size()) {
+                    int64_t n = gear_number(input[l + 1].c_str(), i);
+                    if (n < 0) {
+                        gear = -n;
+                        conn += 2;
+                    } else if (n){
+                        gear *=n;
+                        ++conn;
+                    }
+                }
+                if (conn == 2) sum += gear;
+            }
+        }
+    }
+    return sum;
 }
 
 int main () {
