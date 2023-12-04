@@ -9,18 +9,15 @@ std::vector<std::string> colors {
 "blue",
 "green"
 };
-/*
-std::vector<int> total {
-12,
-14,
-13
-};
-*//*
+
 bool check1 (std::string game) {
     // check only 12 red cubes, 13 green cubes, and 14 blue cubes
-//    for (auto it = game.begin(); it != game.end(); ++it) {
+    std::vector<int> total {
+    12,
+    14,
+    13
+    };
     while (!game.empty()) {
-        std::cout << game << "\n";
         //read number
         size_t len, n;
         n = stoi(game, &len);
@@ -37,17 +34,14 @@ bool check1 (std::string game) {
     }
     return true;
 }
-*/
+
 size_t power (std::string game) {
-    // check only 12 red cubes, 13 green cubes, and 14 blue cubes
-//    for (auto it = game.begin(); it != game.end(); ++it) {
     std::vector<int> total {
     0,
     0,
     0
     };
     while (!game.empty()) {
-        std::cout << game << "\n";
         //read number
         size_t len, n;
         n = stoi(game, &len);
@@ -64,14 +58,26 @@ size_t power (std::string game) {
     }
     return total[0] * total[1] * total[2];
 }
-int main () {
+
+size_t part1() {
     size_t total = 0;
     for (int i = 0; i < input.size(); ++i) {
-//        if (check1(input[i]))
-//            total += i;
+        if (check1(input[i])) total += i;
+    }
+    return total;
+}
+
+size_t part2() {
+    size_t total = 0;
+    for (int i = 0; i < input.size(); ++i) {
         total += power(input[i]);
     }
+    return total;
+}
 
-    std::cout << total << "\n";
+int main () {
+
+    std::cout << "Part 1: " << part1() << "\n";
+    std::cout << "Part 2: " << part2() << "\n";
     return 0;
 }
