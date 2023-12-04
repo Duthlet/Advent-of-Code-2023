@@ -16,7 +16,7 @@ std::vector<std::string> numbers = {
 "eight",
 "nine"};
 
-int val (std::string& str) {
+int val (std::string& str, bool spelled_out_digits) {
     int first = -1;
     int last = -1;
     for (int i = 0; i < str.length(); ++i) {
@@ -26,7 +26,7 @@ int val (std::string& str) {
                 first = c - '0';
             }
             last = c - '0';
-        } else {
+        } else if (spelled_out_digits) {
             for (int n = 1; n <= 9; ++n) {
                 int len = numbers[n-1].length();
                 if (str.substr(i, len) == numbers[n-1]) {
@@ -34,7 +34,6 @@ int val (std::string& str) {
                         first = n;
                     }
                     last = n;
-                    //i += len - 1;
                 }
             }
         }
@@ -44,18 +43,36 @@ int val (std::string& str) {
     return first*10 + last;
 }
 
-int main () {
+int part1() {
     std::vector<int> vals {};
 
     for (auto &str : input) {
-        vals.push_back(val(str));
+        vals.push_back(val(str, false));
     }
 
     int sum = 0;
     for (auto i : vals) {
         sum += i;
     }
+    return sum;
+}
 
-    std::cout << sum << "\n";
+int part2() {
+    std::vector<int> vals {};
+
+    for (auto &str : input) {
+        vals.push_back(val(str, true));
+    }
+
+    int sum = 0;
+    for (auto i : vals) {
+        sum += i;
+    }
+    return sum;
+}
+
+int main () {
+    std::cout << "Part 1: " << part1() << "\n";
+    std::cout << "Part 2: " << part2() << "\n";
     return 0;
 }
