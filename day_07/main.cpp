@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <fstream>
 #include <shortinttypes.h>
 
 template <int part>
@@ -77,25 +78,31 @@ u64 sum (const std::vector<Hand<part>> &hands) {
     return sum;
 }
 
-#include "input.inc"
-
-int part1() {
+int part1(std::vector<std::string> &input) {
     std::vector<Hand<1>> v {};
-    for (auto &h : input) v.emplace_back(h.first, h.second);
+    for (auto &line : input) v.emplace_back(line.substr(0, 5), stoi(line.substr(6, std::string::npos)));
     std::sort(v.begin(), v.end());
     return sum(v);
 }
 
-int part2() {
+int part2(std::vector<std::string> &input) {
     std::vector<Hand<2>> v {};
-    for (auto &h : input) v.emplace_back(h.first, h.second);
+    for (auto &line : input) v.emplace_back(line.substr(0, 5), stoi(line.substr(6, std::string::npos)));
     std::sort(v.begin(), v.end());
     return sum(v);
 }
 
 int main () {
-    auto p1 = part1();
-    auto p2 = part2();
+    std::vector<std::string> input;
+    std::ifstream file("input");
+    while (1) {
+        std::string line;
+        std::getline(file, line);
+        if (file.eof()) break;
+        input.push_back(line);
+    }
+    auto p1 = part1(input);
+    auto p2 = part2(input);
     std::cout << "Part 1: " << p1 << "\n";
     std::cout << "Part 2: " << p2 << "\n";
     return 0;
