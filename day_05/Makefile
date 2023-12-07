@@ -1,6 +1,6 @@
 CC=g++
 
-CFLAGS=-O2 -std=c++20
+CFLAGS=-O2 -std=c++20 -I ../include
 
 run: main
 	./main

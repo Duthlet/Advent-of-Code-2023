@@ -1,41 +1,40 @@
 #include <vector>
 #include <iostream>
-#include <cstdint>
-#include <limits>
+#include <shortinttypes.h>
 
 class mapping {
-    uint64_t dest;
-    uint64_t src;
-    uint64_t len;
+    u64 dest;
+    u64 src;
+    u64 len;
 
     public:
 
-    uint64_t map(uint64_t &x) const {
+    u64 map(u64 &x) const {
         if (x >= src && x < src + len) {
-            uint64_t y = src + len - x;
+            u64 y = src + len - x;
             x = (dest + x - src);
             return y;
         }
         return 0;
     }
 
-    mapping (uint64_t d, uint64_t s, uint64_t l) : dest(d), src(s), len(l) {}
+    mapping (u64 d, u64 s, u64 l) : dest(d), src(s), len(l) {}
 };
 
 #include "input.inc"
 
-uint64_t map (uint64_t& x, const std::vector<mapping> &mapp) {
-    uint64_t y;
+u64 map (u64& x, const std::vector<mapping> &mapp) {
+    u64 y;
     for (const auto& m : mapp) {
         if (auto y = m.map(x)) {
             return y;
         }
     }
-    return std::numeric_limits<uint64_t>::max();
+    return U64MAX;
 }
 
-uint64_t map1 (uint64_t& x) {
-    uint64_t y = std::numeric_limits<uint64_t>::max();
+u64 map1 (u64& x) {
+    u64 y = U64MAX;
     y = std::min(y, map (x, seed_to_soil));
     y = std::min(y, map (x, soil_to_fertilizer));
     y = std::min(y, map (x, fertilizer_to_water));
@@ -43,11 +42,11 @@ uint64_t map1 (uint64_t& x) {
     y = std::min(y, map (x, light_to_temperature));
     y = std::min(y, map (x, temperature_to_humidity));
     y = std::min(y, map (x, humidity_to_location));
-    return y == std::numeric_limits<uint64_t>::max() ? 0 : y;
+    return y == U64MAX ? 0 : y;
 }
 
-uint64_t part1() {
-    uint64_t min = std::numeric_limits<uint64_t>::max();
+u64 part1() {
+    u64 min = U64MAX;
     for (auto s : seeds) {
         map1(s);
         if (s < min)
@@ -56,9 +55,9 @@ uint64_t part1() {
     return min;
 }
 
-uint64_t map2 (uint64_t start, uint64_t len) {
-    uint64_t min = std::numeric_limits<uint64_t>::max();
-    for (uint64_t i = start; i < start + len; ++i) {
+u64 map2 (u64 start, u64 len) {
+    u64 min = U64MAX;
+    for (u64 i = start; i < start + len; ++i) {
         auto cand = i;
         auto y = map1(cand);
         if (cand < min)
@@ -69,7 +68,7 @@ uint64_t map2 (uint64_t start, uint64_t len) {
 }
 
 int part2() {
-    uint64_t min = std::numeric_limits<uint64_t>::max();
+    u64 min = U64MAX;
     for (auto it = seeds.begin(); it != seeds.end(); ++it) {
         auto start = *it;
         ++it;
