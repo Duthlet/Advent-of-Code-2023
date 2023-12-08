@@ -1,8 +1,8 @@
 #include <vector>
 #include <iostream>
 #include <unordered_map>
+#include <string>
 #include <shortinttypes.h>
-#include <algorithm>
 
 std::vector<int> dirs;
 int start1;
@@ -10,9 +10,8 @@ int goal1;
 std::vector<int> start2;
 std::vector<int> goal2;
 std::vector<std::vector <int>> move;
-std::unordered_map<u64, std::pair<u32, int>> nexty {};
 
-int next_dir (int &i) {
+int next_dir (u64 &i) {
     int retval = dirs[i];
     i = (i + 1) % dirs.size();
     return retval;
@@ -20,9 +19,18 @@ int next_dir (int &i) {
 
 struct ghost {
 
-    static std::pair<u32, int> find_next_step_and_goal_index (int i, int start) {
+    static std::pair<u32, int> find_next_step_and_goal_index (int from, u64 dir_index) {
+        static std::unordered_map<u64, std::pair<u32, int>> cache;
+        // lookup cache
+        u64 _i = (u64(from) << 32) + dir_index;
+        auto f = cache.find(_i);
+        if (f != cache.end()) {
+            return f->second;
+        }
+        // calculate retval;
+        int i = from;
         u32 retval = 1;
-        i = move[next_dir(start)][i];
+        i = move[next_dir(dir_index)][i];
         int n;
 
         auto at_goal = [&]() {
@@ -33,10 +41,10 @@ struct ghost {
         };
 
         while (at_goal() < 0) {
-            i = move[next_dir(start)][i];
+            i = move[next_dir(dir_index)][i];
             ++retval;
         }
-        return {retval, n};
+        return (cache[_i] = {retval, n});
     }
 
     ghost (int start) {
@@ -56,13 +64,8 @@ struct ghost {
         }
     }
     u64 next() {
-        auto x = std::pair{to, steps % dirs.size()};
-        u64 i = (u64(x.first) << 32) + u64(x.second);
-        auto f = nexty.find(i);
-        if (f == nexty.end()) {
-            nexty[i] = find_next_step_and_goal_index(goal2[x.first],x.second);
-        }
-        auto p = nexty[i];
+        u64 dir_index = steps % dirs.size();
+        auto p = find_next_step_and_goal_index(goal2[to], dir_index);
         steps += p.first;
         to = p.second;
         return steps;
@@ -95,7 +98,7 @@ u64 part2() {
 
 u64 part1() {
     u64 steps = 0;
-    int i = 0;
+    u64 i = 0;
     while (start1 != goal1) {
         ++steps;
         start1 = move[next_dir(i)][start1];
@@ -123,7 +126,6 @@ void parse_input() {
         if (line[0][2] == 'A') start2.push_back(i);
         if (line[0][2] == 'Z') goal2.push_back(i);
     }
-    std::sort(goal2.begin(), goal2.end());
     move.push_back(std::vector<int>{});
     move.push_back(std::vector<int>{});
     for (i = 0; i < left.size(); ++i) {
@@ -134,11 +136,11 @@ void parse_input() {
     for (auto i : start2) std::cout << i << ",";
     std::cout << "\ngoals: ";
     for (auto i : goal2) std::cout << i << ",";
+    std::cout << "\ndone parsing\n";
 }
 
 int main () {
     parse_input();
-    std::cout << "done parsing\n";
     auto p1 = part1();
     std::cout << "Part 1: " << p1 << "\n";
     auto p2 = part2();
