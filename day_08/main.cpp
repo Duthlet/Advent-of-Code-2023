@@ -10,6 +10,7 @@ int goal1;
 std::vector<int> start2;
 std::vector<int> goal2;
 std::vector<std::vector <int>> move;
+std::unordered_map<u64, std::pair<u32, int>> nexty {};
 
 int next_dir (int &i) {
     int retval = dirs[i];
@@ -17,54 +18,29 @@ int next_dir (int &i) {
     return retval;
 }
 
-u64 part1() {
-    u64 steps = 0;
-    int i = 0;
-    while (start1 != goal1) {
-        ++steps;
-        start1 = move[next_dir(i)][start1];
-    }
-    return steps;
-}
-
-bool done () {
-    std::sort (start2.begin(), start2.end());
-
-    for (int i = 0; i< start2.size(); ++i) {
-        if (start2[i] != goal2[i]) return false;
-    }
-    return true;
-}
-
-int at_goal (int i) {
-    for (int n = 0; n < goal2.size(); ++n)
-        if (i == goal2[n]) return n;
-    return -1;
-}
-
-std::pair<u32, int> blubb (int i, int start) {
-    u32 retval = 1;
-    i = move[next_dir(start)][i];
-    int n;
-    while ((n = at_goal(i)) < 0) {
-        i = move[next_dir(start)][i];
-        ++retval;
-    }
-    return {retval, n};
-}
-
-std::vector<std::pair<u32, int>> bla (int i) {
-    std::vector<std::pair<u32, int>> next {};
-    for (int start = 0; start < dirs.size(); ++start) {
-        next.push_back(blubb(i, start));
-    }
-    return next;
-}
-
-std::vector<std::vector <std::pair<u32, int>>> nextz {};
 struct ghost {
+
+    static std::pair<u32, int> find_next_step_and_goal_index (int i, int start) {
+        u32 retval = 1;
+        i = move[next_dir(start)][i];
+        int n;
+
+        auto at_goal = [&]() {
+            for (n = 0; n < goal2.size(); ++n)
+                if (i == goal2[n]) return n;
+            n = -1;
+            return n;
+        };
+
+        while (at_goal() < 0) {
+            i = move[next_dir(start)][i];
+            ++retval;
+        }
+        return {retval, n};
+    }
+
     ghost (int start) {
-        auto p = blubb(start, 0);
+        auto p = find_next_step_and_goal_index(start, 0);
         steps = p.first;
         to = p.second;
     }
@@ -80,21 +56,21 @@ struct ghost {
         }
     }
     u64 next() {
-        //auto p = blubb(goal2[to],steps % dirs.size());
-        auto p = nextz[to][steps % dirs.size()];
+        auto x = std::pair{to, steps % dirs.size()};
+        u64 i = (u64(x.first) << 32) + u64(x.second);
+        auto f = nexty.find(i);
+        if (f == nexty.end()) {
+            nexty[i] = find_next_step_and_goal_index(goal2[x.first],x.second);
+        }
+        auto p = nexty[i];
         steps += p.first;
         to = p.second;
-        int i;
         return steps;
     }
 
 };
 
 u64 part2() {
-    for (int i : goal2) {
-        nextz.push_back(bla(i));
-    }
-    std::cout << "calculated nextz\n";
     std::vector<ghost> ghosts {};
     for (int i : start2) {
         ghosts.emplace_back(i);
@@ -117,29 +93,22 @@ u64 part2() {
     return steps;
 }
 
+u64 part1() {
+    u64 steps = 0;
+    int i = 0;
+    while (start1 != goal1) {
+        ++steps;
+        start1 = move[next_dir(i)][start1];
+    }
+    return steps;
+}
+
 void parse_input() {
 #include "input.inc"
-/*std::string directions = "LR";
 
-std::unordered_map<std::string, std::pair<std::string, std::string>> input {
-{"11A",{"11B","11B"}},
-{"11B",{"11B","11Z"}},
-{"11Z",{"11B","11B"}},
-{"22A",{"22B","11B"}},
-{"22B",{"22C","22C"}},
-{"22C",{"22Z","22Z"}},
-{"22Z",{"22B","22B"}},
-{"XXX",{"11B","11B"}}};
-*/
     std::unordered_map<std::string, int> indices;
     int i = 0;
-    for (const auto & line : input) indices.emplace(line.first, i++);
-
-    std::cout << "indices:\n"; 
-    for (const auto & x : indices) {
-        std::cout << x.first << ", " << x.second << ", " << input[x.first].first << ", " << input[x.first].second << "\n";
-    }
-    std::cout << "endindices:\n"; 
+    for (const auto & line : input) indices.emplace(line[0], i++);
 
     for (char c : directions) dirs.push_back(c == 'L' ? 0 : 1);
 
@@ -148,11 +117,11 @@ std::unordered_map<std::string, std::pair<std::string, std::string>> input {
     start1 = indices["AAA"];
     goal1 = indices["ZZZ"];
     for (const auto& line : input) {
-        int i = indices[line.first];
-        left.emplace(i, indices[line.second.first]);
-        right.emplace(i, indices[line.second.second]);
-        if (line.first[2] == 'A') start2.push_back(i);
-        if (line.first[2] == 'Z') goal2.push_back(i);
+        int i = indices[line[0]];
+        left.emplace(i, indices[line[1]]);
+        right.emplace(i, indices[line[2]]);
+        if (line[0][2] == 'A') start2.push_back(i);
+        if (line[0][2] == 'Z') goal2.push_back(i);
     }
     std::sort(goal2.begin(), goal2.end());
     move.push_back(std::vector<int>{});
