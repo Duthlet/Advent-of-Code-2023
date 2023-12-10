@@ -1,179 +1,110 @@
 #include <vector>
 #include <iostream>
 #include <shortinttypes.h>
+#include <point.h>
 #include <cassert>
 #include <queue>
 #include <unordered_set>
 
 #include "input.inc"
 
-char coord (int x, int y) {
-    if ((y < 0) || (y >= int(input.size())) || (x < 0) || (x >= int(input[y].length()))) return '.';
-    return input[y][x];
+char coord (const point& p) {
+    if ((p.y < 0) || (p.y >= int(input.size())) || (p.x < 0) || (p.x >= int(input[p.y].length()))) return '.';
+    return input[p.y][p.x];
 }
 
-std::pair<int, int> find_start() {
+point find_start() {
     for (int y = 0; y < int(input.size()); ++y)
         for (int x = 0; x < int(input[y].length()); ++x)
-            if (coord(x, y) == 'S') return {x, y};
+            if (coord({x, y}) == 'S') return {x, y};
     assert(false);
 }
 
-struct loop_tile {
-    int x;
-    int y;
-    int from_x;
-    int from_y;
-    size_t distance;
-    bool legal_start();
-    loop_tile next_tile();
-};
-
-bool loop_tile::legal_start() {
-    std::cerr << x << "," << y << " contains " << coord(x,y) << "\n";
-    switch (coord(x, y)) {
+bool legal_start(point from, point pos) {
+    switch (coord(pos)) {
         case '.': return false;
-        case '|': return (from_x==x) && (from_y==y - 1 || from_y==y + 1);
-        case '-': return (from_y==y) && (from_x==x - 1 || from_x==x + 1);
-        case '7': return (from_x==x-1 && from_y==y)||(from_x==x && from_y==y+1);
-        case 'F': return (from_x==x+1 && from_y==y)||(from_x==x && from_y==y+1);
-        case 'L': return (from_x==x+1 && from_y==y)||(from_x==x && from_y==y-1);
-        case 'J': return (from_x==x-1 && from_y==y)||(from_x==x && from_y==y-1);
-        default:
-        assert (false);
+        case '|': return from == pos.up() || from == pos.down();
+        case '-': return from == pos.left() || from == pos.right();
+        case '7': return from == pos.left() || from == pos.down();
+        case 'F': return from == pos.right() || from == pos.down();
+        case 'L': return from == pos.up() || from == pos.right();
+        case 'J': return from == pos.up() || from == pos.left();
+        default: assert (false);
     }
 }
 
-loop_tile loop_tile::next_tile() {
-    loop_tile new_tile;
-    new_tile.from_x = x;
-    new_tile.from_y = y;
-    new_tile.distance = distance + 1;
-    switch (coord(x, y)) {
-        case '|': if (from_x == x && from_y == y - 1) {
-                new_tile.x = x;
-                new_tile.y = y+1;
-            } else {
-                new_tile.x = x;
-                new_tile.y = y-1;
-            }
-            break;
-        case '-': if (from_y == y && from_x == x - 1) {
-                new_tile.x = x+1;
-                new_tile.y = y;
-            } else {
-                new_tile.x = x-1;
-                new_tile.y = y;
-            }
-            break;
-        case '7': if (from_x==x-1 && from_y==y) {
-                new_tile.x = x;
-                new_tile.y = y+1;
-            } else {
-                new_tile.x = x-1;
-                new_tile.y = y;
-            }
-            break;
-        case 'F': if (from_x==x+1 && from_y==y) {
-                new_tile.x = x;
-                new_tile.y = y+1;
-            } else {
-                new_tile.x = x+1;
-                new_tile.y = y;
-            }
-            break;
-        case 'L': if (from_x==x+1 && from_y==y) {
-                new_tile.x = x;
-                new_tile.y = y-1;
-            } else {
-                new_tile.x = x+1;
-                new_tile.y = y;
-            }
-            break;
-        case 'J': if (from_x==x-1 && from_y==y) {
-                new_tile.x = x;
-                new_tile.y = y-1;
-            } else {
-                new_tile.x = x-1;
-                new_tile.y = y;
-            }
-            break;
+point next_tile(const point& prev, const point& cur) {
+    switch (coord(cur)) {
+        case '|': return prev == cur.down() ? cur.up() : cur.down();
+        case '-': return prev == cur.right() ? cur.left() : cur.right();
+        case '7': return prev == cur.down() ? cur.left() : cur.down();
+        case 'F': return prev == cur.down() ? cur.right() : cur.down();
+        case 'L': return prev == cur.up() ? cur.right() : cur.up();
+        case 'J': return prev == cur.up() ? cur.left() : cur.up();
         default:
-            std::cerr << x << "," << y << " contains " << coord(x,y) << "distance" << distance<<"\n";
- assert (false);
+            std::cerr << cur << " contains " << coord(cur) << "\n";
+            assert (false);
     }
-    return new_tile;
 }
 
-void turn(std::vector<loop_tile>& q) {
-    q.push_back((q.end()-1)->next_tile());
-    if (coord(q.back().x, q.back().y) == 'S') return;
-}
-
-std::vector<loop_tile> part1() {
+std::vector<point> part1() {
     auto start = find_start();
-    int x = start.first;
-    int y = start.second;
-    std::cout << "Start: " << x << ", " << y << "\n";
-    std::vector<loop_tile> q{};
-    loop_tile tile;
-    tile = loop_tile{x-1, y, x, y, 1};
-    if (tile.legal_start()) {
-        q.push_back(tile);
-    } else {
-        tile = loop_tile{x+1, y, x, y, 1};
-        if (tile.legal_start()) {
-            q.push_back(tile);
-        } else {
-            tile = loop_tile{x, y-1, x, y, 1};
-            if (tile.legal_start()) {
-                q.push_back(tile);
-            } else {
-                tile = loop_tile{x, y+1, x, y, 1};
-                if (tile.legal_start()) q.push_back(tile);
-            }
+
+    std::cout << "Start: " << start << "\n";
+    std::vector<point> loop{};
+    loop.push_back(start);
+
+    std::vector<point> second{start.left(), start.right(), start.up(), start.down()};
+    for (const auto& p : second) {
+        if (legal_start(start, p)) {
+            loop.push_back(p);
+            break;
         }
     }
 
-    assert (q.size() == 1);
-    while (coord(q.back().x, q.back().y) != 'S') {
-        turn(q);
+    auto in_loop = [&](const point& pos) {
+        for (const auto& l : loop)
+            if (l == pos) return true;
+        return false;
+    };
+
+    assert (loop.size() == 2);
+    while (1) {
+        auto next = next_tile(*(loop.end()-2), *(loop.end()-1));
+        if (in_loop(next)) break;
+        loop.push_back(next);
     }
 
-    return q;
+    return loop;
 }
 
-u64 point (int x, int y) {
-    return (u64(x) << 32) + u64(y);
+bool in_grid (const point& p) {
+    return !((p.x % 2) || (p.y % 2));
 }
 
-bool in_grid (u64 p) {
-    u32 x = p >> 32;
-    u32 y = p;
-    return !((x % 2) || (y % 2));
+bool in_bounds (const point& p) {
+    return ( (p.y >= -1) && (p.y <= 2*int(input.size()) - 1)
+          && (p.x >= -1) && (p.x <= 2*int(input.size()) - 1));
 }
 
-bool in_bounds (u64 p) {
-    i32 x = u32(p >> 32);
-    i32 y = u32(p);
-    return ( (y >= -1) && (y <= 2*int(input.size()) - 1) &&
-(x >= -1) && (x <= 2*int(input.size()) - 1));
+point to_point (u64 p) {
+    return { i32(u32(p << 32)), i32(u32(p)) };
 }
 
-int part2(std::vector<loop_tile>& loop_v) {
+int part2(std::vector<point>& loop_v) {
     std::unordered_set<u64> loop {};
-    for (auto &t : loop_v) loop.insert(point(2*t.x, 2*t.y));
+    for (auto &t : loop_v) loop.insert(u64(2*t));
 
     std::cout << "Size(loop) = " << loop.size() << "\n";
 
-    std::queue<u64> check {};
+    std::queue<point> check {};
     for (int y = -1; y <= 2*int(input.size()) - 1; ++y) {
-        check.push(point(-1, y));
-        check.push(point(2*input[0].length() - 1, y));
+        check.push({-1, y});
+        check.push({2*int(input[0].length()) - 1, y});
     }
     for (int x = 0; x < 2*int(input[0].length()) - 1; ++x) {
-        check.push(point(x, -1));
-        check.push(point(x, 2*input.size()-1));
+        check.push({x, -1});
+        check.push({x, 2*int(input.size())-1});
     }
     int width = 2*input[0].length() + 1;
     int height = 2*input.size() + 1;
@@ -185,15 +116,13 @@ int part2(std::vector<loop_tile>& loop_v) {
     std::cout << "c: " << circ << "\n";
     std::cout << "Size(check) = " << check.size() << "\n";
 
-    auto in_loop = [&](u64 p) {
+    auto in_loop = [&](const point& p) {
         if (in_grid(p)) {
-            return bool(loop.count(p));
+            return bool(loop.count(u64(p)));
         }
-        i32 x = u32(p >> 32);
-        i32 y = u32(p);
-        if (loop.count(point(x-1,y)) && loop.count(point(x+1,y))) {
-            char left = coord((x-1)/2, y/2);
-            char right = coord((x+1)/2, y/2);
+        if (loop.count(u64(p.left())) && loop.count(u64(p.right()))) {
+            char left = coord({(p.x-1)/2, p.y/2});
+            char right = coord({(p.x+1)/2, p.y/2});
             if ((left == '-'
               || left == 'L'
               || left == 'F'
@@ -205,9 +134,9 @@ int part2(std::vector<loop_tile>& loop_v) {
                 return true;
             return false;
         }
-        if (loop.count(point(x,y-1)) && loop.count(point(x,y+1))) {
-            char up = coord(x/2, (y-1)/2);
-            char down = coord(x/2, (y+1)/2);
+        if (loop.count(u64(p.up())) && loop.count(u64(p.down()))) {
+            char up = coord({p.x/2, (p.y-1)/2});
+            char down = coord({p.x/2, (p.y+1)/2});
             if ((up == '|'
               || up == '7'
               || up == 'F'
@@ -224,22 +153,20 @@ int part2(std::vector<loop_tile>& loop_v) {
 
     std::unordered_set<u64> checked {};
     while (!check.empty()) {
-        u64 tbc = check.front();
+        point tbc = check.front();
         check.pop();
-        if (in_bounds(tbc) && (!checked.count(tbc)) && (!in_loop(tbc))) {
-            checked.insert(tbc);
-            i32 x = u32(tbc >> 32);
-            i32 y = u32(tbc);
-            check.push(point(x+1, y));
-            check.push(point(x, y+1));
-            check.push(point(x-1, y));
-            check.push(point(x, y-1));
+        if (in_bounds(tbc) && (!checked.count(u64(tbc))) && (!in_loop(tbc))) {
+            checked.insert(u64(tbc));
+            check.push(tbc.right());
+            check.push(tbc.left());
+            check.push(tbc.down());
+            check.push(tbc.up());
         }
     }
 
     u64 sum = 0;
     for (auto u : checked) {
-        sum += in_grid(u);
+        sum += in_grid(to_point(u));
     }
     std::cout << "In grid: " << sum << "\n";
     return 140*140 - sum - loop.size();
