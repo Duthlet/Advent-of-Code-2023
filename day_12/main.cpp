@@ -2,112 +2,67 @@
 #include <string>
 #include <iostream>
 #include <shortinttypes.h>
-#include <queue>
+#include <cassert>
 #include <sstream>
 
 extern std::vector<std::pair<std::string, std::vector<u32>>> input;
 
-std::vector<u32> desc(const std::string& str) {
-    std::vector<u32> retval {};
-    bool broken = false;
-    u32 streak = 0;
-    for (auto c : str) {
-        if (c == '?') {
-            broken = true;
-            break;
-        }
-        if (broken) {
-            if (c == '#') ++streak;
-            else {
-                retval.push_back(streak);
-                broken = false;
-                streak = 0;
-            }
-        } else {
-            if (c == '#') {
-                broken = true;
-                ++streak;
-            }
-        }
+bool can_match (std::string_view &str, u32 match) {
+    if (str.length() < match) return false;
+    for (u32 i = 0; i < match; ++i) {
+        if (str[i] == '.') return false;
     }
-    if (broken) retval.push_back(streak);
+    return (str.length() == match) || str[match] != '#';
+}
+
+std::vector<std::string_view> _get_pos (std::string_view str, u32 match) {
+    std::vector<std::string_view> retval {};
+    for (auto it = str.begin(); it != str.end(); ++it) {
+        if (*it == '.') continue;
+        auto cand = std::string_view{it, str.end()};
+        if (can_match(cand, match)) {
+            if (cand.length() == match) {
+                retval.push_back({});
+                break;
+            }
+            retval.push_back({it+match+1, str.end()});
+        }
+        if (*it == '#') break;
+    }
     return retval;
 }
 
-bool matches(const std::string& str, const std::vector<u32>& info) {
-    return info == desc(str);
-}
+u64 possibilities(std::string_view str, std::vector<u32>& info, const u32 i, const u32 min) {
 
-bool might_match(const std::string& str, const std::vector<u32>& info) {
-    auto v = desc(str);
-    if (v.size() > info.size() + 1) {
-        //std::cout << "v.size() = " << v.size() << "\n";
-        return false;
-    }
-    for (u32 i = 0; i + 1 < v.size(); ++i) {
-        if (v[i] != info[i]) {
-            //std::cout << "v.[" << i << "] = " << v[i]  << "\n";
-            return false;
+    if (i >= info.size()) {
+        for (auto it = str.begin(); it != str.end(); ++it) {
+            if (*it == '#') return 0;
         }
-    }
-    return true;
-}
-
-u64 possibilities(std::string& str, std::vector<u32>& info) {
-    std::queue<std::string> pos {};
-    pos.push(str);
-    while (!pos.empty()) {
-        auto front = pos.front();
-        auto f = front.find('?');
-        if (f == std::string::npos) break;
-        pos.pop();
-        /*
-        pos.push(front.replace(f, 1, 1, '.'));
-        pos.push(front.replace(f, 1, 1, '#'));
-        */
-        /*
-        std::string cand = front;
-        cand.replace(f, 1, 1, '.');
-//        bool b =might_match(cand, info);
-        if (true)       pos.push(cand);
-        cand = front;
-        cand.replace(f, 1, 1, '#');
-//        b =might_match(cand, info);
-        if (true)       pos.push(cand);
-        */
-        std::string cand = front;
-        cand.replace(f, 1, 1, '.');
-        if (might_match(cand, info)) pos.push(cand);
-        /*
-        else {
-            std::cout << "Discarding ";
-    std::cout << str << " to match ";
-    for (auto i : info) std::cout << i << ", ";
-    std::cout << "\n";
-        }
-        */
-        cand = front;
-        cand.replace(f, 1, 1, '#');
-        if (might_match(cand, info)) pos.push(cand);
+        return 1;
     }
     u64 sum = 0;
-    while (!pos.empty()) {
-        sum += matches(pos.front(), info);
-        pos.pop();
+    auto matches = _get_pos(str, info[i]);
+    for (auto &m : matches) {
+        sum += possibilities(m, info, i+1, min-info[i]-1);
     }
     /*
-    std::cout << "Found " << sum << " possibilities for " << str << " to match ";
-    for (auto i : info) std::cout << i << ", ";
-    std::cout << "\n";
+    std::cout << i << ": "<< str << " ";
+    for (auto j = i; j < info.size(); ++j) std::cout << info[j] << " ";
+    std::cout << "(min " << min << "): " << sum << " possibilities found!\n";
     */
     return sum;
 }
 
+u32 min (std::vector<u32>& info) {
+    u32 sum = info.size() - 1;
+    for (auto i : info) sum += i;
+    return sum;
+}
 
 u64 part1() {
     u64 sum = 0;
     for (auto &p : input) {
-        sum += possibilities(p.first, p.second);
+        sum += possibilities({p.first.c_str()}, p.second, 0, min(p.second));
     }
     return sum;
 }
@@ -133,7 +88,7 @@ int part2() {
 }
 
 int main () {
-/*
+    /*
     input = {
 {"???.###",{1,1,3}},
 {".??..??...?##.",{1,1,3}},
