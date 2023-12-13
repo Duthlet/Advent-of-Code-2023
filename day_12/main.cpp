@@ -4,10 +4,12 @@
 #include <shortinttypes.h>
 #include <cassert>
 #include <sstream>
+#include <map>
+#include <unordered_map>
 
 extern std::vector<std::pair<std::string, std::vector<u32>>> input;
 
-bool can_match (std::string_view &str, u32 match) {
+bool can_match (std::string_view str, u32 match) {
     if (str.length() < match) return false;
     for (u32 i = 0; i < match; ++i) {
         if (str[i] == '.') return false;
@@ -15,41 +17,65 @@ bool can_match (std::string_view &str, u32 match) {
     return (str.length() == match) || str[match] != '#';
 }
 
-std::vector<std::string_view> _get_pos (std::string_view str, u32 match) {
-    std::vector<std::string_view> retval {};
-    for (auto it = str.begin(); it != str.end(); ++it) {
-        if (*it == '.') continue;
-        auto cand = std::string_view{it, str.end()};
-        if (can_match(cand, match)) {
-            if (cand.length() == match) {
-                retval.push_back({});
-                break;
-            }
-            retval.push_back({it+match+1, str.end()});
+std::vector<u32> _get_pos (const std::string& str, u32 match) {
+    std::vector<u32> retval {};
+    bool skip = false;
+    for (auto it = str.begin(); it != str.end() + 1 - match; ++it) {
+        if (skip) {
+            if (*it != '#') skip = false;
+            continue;
         }
-        if (*it == '#') break;
+        if (*it == '.') continue;
+        if (can_match({it, str.end()}, match)) {
+            retval.push_back(it - str.begin());
+        }
+        if (*it == '#') skip = true;
     }
     return retval;
 }
 
-u64 possibilities(std::string_view str, std::vector<u32>& info, const u32 i, const u32 min) {
+std::map <u32, std::vector<u32>> pos_by_match (const std::string& str, const std::vector<u32>& info) {
+    std::map <u32, std::vector<u32>> retval {};
+    retval[0] = {};
+    for (u32 i = 0; i < str.size(); ++i)
+        if (str[i] == '#') retval[0].push_back(i);
+    for (auto i : info) {
+        if (retval.find(i) == retval.end())
+            retval[i] = _get_pos(str, i);
+    }
+    return retval;
+}
 
-    if (i >= info.size()) {
-        for (auto it = str.begin(); it != str.end(); ++it) {
-            if (*it == '#') return 0;
-        }
-        return 1;
+std::unordered_map<u64, u64> cache {};
+
+
+u64 possibilities(std::map<u32, std::vector<u32>> &pbm, u32 os, std::vector<u32>& info, const u32 i, const u32 min, const u32 size) {
+
+    u64 cache_index =(u64(os) << 32) | u64(i);
+
+    auto cached = cache.find(cache_index);
+    if (cached != cache.end()) {
+        return cached->second;
     }
+
+    if (i >= info.size()) return pbm[0].empty() || pbm[0].back() < os;
+
+    if (os + min > size) return 0;
+
     u64 sum = 0;
-    auto matches = _get_pos(str, info[i]);
-    for (auto &m : matches) {
-        sum += possibilities(m, info, i+1, min-info[i]-1);
+    auto matches = pbm[info[i]];
+    u32 next_broken = U32MAX;
+    for (auto i : pbm[0]) {
+        if (i < os) continue;
+        next_broken = i;
+        break;
     }
-    /*
-    std::cout << i << ": "<< str << " ";
-    for (auto j = i; j < info.size(); ++j) std::cout << info[j] << " ";
-    std::cout << "(min " << min << "): " << sum << " possibilities found!\n";
-    */
+    for (auto &m : matches) {
+        if (m < os) continue;
+        if (m > next_broken) break;
+        sum += possibilities(pbm, m + info[i] + 1, info, i+1, min-info[i]-1, size);
+    }
+    cache[cache_index] = sum;
     return sum;
 }
 
@@ -62,12 +88,24 @@ u32 min (std::vector<u32>& info) {
 u64 part1() {
     u64 sum = 0;
     for (auto &p : input) {
-        sum += possibilities({p.first.c_str()}, p.second, 0, min(p.second));
+        auto matches = pos_by_match({p.first.c_str()}, p.second);
+        /*
+        std::cout << "In " << p.first << ":\n";
+        for (auto &p : matches) {
+            std::cout << p.first << ": ";
+            for (auto i : p.second) std::cout << i << ", ";
+            std::cout << "\n";
+        }
+        */
+        cache = std::unordered_map<u64, u64> {};
+        auto pos = possibilities(matches, 0, p.second, 0, min(p.second), p.first.length());
+ //       std::cout << "In " << p.first << ": " << pos << "\n";
+        sum += pos;
     }
     return sum;
 }
 
-int part2() {
+u64 part2() {
     for (auto &p : input) {
         std::stringstream strm {};
         strm
@@ -88,7 +126,7 @@ int part2() {
 }
 
 int main () {
-    /*
+/*
     input = {
 {"???.###",{1,1,3}},
 {".??..??...?##.",{1,1,3}},
