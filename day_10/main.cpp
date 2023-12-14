@@ -106,15 +106,6 @@ int part2(std::vector<point>& loop_v) {
         check.push({x, -1});
         check.push({x, 2*int(input.size())-1});
     }
-    int width = 2*input[0].length() + 1;
-    int height = 2*input.size() + 1;
-    int area = width * height;
-    int circ = (width + height -2) * 2;
-    std::cout << "w: " << width << "\n";
-    std::cout << "h: " << height << "\n";
-    std::cout << "a: " << area << "\n";
-    std::cout << "c: " << circ << "\n";
-    std::cout << "Size(check) = " << check.size() << "\n";
 
     auto in_loop = [&](const point& p) {
         if (in_grid(p)) {
@@ -168,7 +159,6 @@ int part2(std::vector<point>& loop_v) {
     for (auto u : checked) {
         sum += in_grid(to_point(u));
     }
-    std::cout << "In grid: " << sum << "\n";
     return 140*140 - sum - loop.size();
 }
 
