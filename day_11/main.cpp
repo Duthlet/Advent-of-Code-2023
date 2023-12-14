@@ -43,8 +43,7 @@ void inflate_x () {
     }
 }
 
-//constexpr i32 inflation = 1;
-constexpr i32 inflation = 999999;
+i32 inflation;
 
 u64 d(const point& lhs, const point& rhs) {
     return abs(lhs.x - rhs.x) + abs(lhs.y - rhs.y);
@@ -54,8 +53,7 @@ u64 d(const std::pair<point, point>& lhs,const std::pair<point, point>& rhs) {
     return d(lhs.first, rhs.first) + d(lhs.second, rhs.second) * inflation;
 }
 
-
-u64 part1() {
+u64 common () {
     inflate_y();
     inflate_x();
     std::vector<std::pair<point, point>> galaxies {};
@@ -72,8 +70,6 @@ u64 part1() {
         }
     }
 
-    std::cout << "Found " << galaxies.size() << " galaxies\n";
-
     u64 sum = 0;
     for (u32 i = 0; i < galaxies.size(); ++i)
         for (u32 j = i+1; j < galaxies.size(); ++j)
@@ -82,8 +78,14 @@ u64 part1() {
     return sum;
 }
 
-int part2() {
-    return 0;
+u64 part1() {
+    inflation = 1;
+    return common();
+}
+
+u64 part2() {
+    inflation = 999999;
+    return common();
 }
 
 int main () {
